@@ -2729,15 +2729,15 @@ private String contrastColor(String hex) {
 // Icon glyphs -- codes from official openHASP 0.7 font table:
 // https://www.openhasp.com/0.7.0/design/fonts/
 private String ICON_MOTION_ACTIVE()   { return "" }
-private String ICON_MOTION_INACTIVE() { return "" }
+private String ICON_MOTION_INACTIVE() { return "\uE004" }   // account (still person)
 private String ICON_SMOKE_ACTIVE()    { return "\uE026" }   // alert
 private String ICON_SMOKE_INACTIVE()  { return "\uE238" }   // fire
 private String ICON_WATER_WET()       { return "\uE58C\uE58C" }   // two water drops (wet)
 private String ICON_WATER_DRY()       { return "\uE58C" }          // single water drop (dry)
-private String ICON_DOOR_OPEN()       { return "\uF208" }   // door-open
-private String ICON_DOOR_CLOSED()     { return "\uE81C" }   // door
-private String ICON_WINDOW_OPEN()     { return "\uF6A3" }   // window-open
-private String ICON_WINDOW_CLOSED()   { return "\uF1DB" }   // window
+private String ICON_DOOR_OPEN()       { return "\uE81C" }   // door-open
+private String ICON_DOOR_CLOSED()     { return "\uE81B" }   // door-closed
+private String ICON_WINDOW_OPEN()     { return "\uF11E" }   // window-shutter-open (no plain "window-open" glyph in this font)
+private String ICON_WINDOW_CLOSED()   { return "\uF11C" }   // window-shutter
 private String ICON_LIGHTBULB_ON()    { return "\uE6E8" }   // lightbulb-on
 private String ICON_LIGHTBULB_OFF()   { return "\uE335" }   // lightbulb
 private String ICON_LOCK_OPEN()       { return "\uEFC6" }   // lock-open-variant
