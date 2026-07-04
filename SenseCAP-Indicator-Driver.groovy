@@ -4,7 +4,7 @@
  */
 
 /**
- * SenseCAP Indicator Driver v2.0.0
+ * SenseCAP Indicator Driver v2.6.0
  *
  * Hubitat driver for the SenseCAP Indicator D1 (480x480) running openHASP firmware.
  * Communicates via MQTT. Up to 12 pages, each independently configurable.
@@ -154,7 +154,7 @@
  *           only, no device, driver-side per-minute tick).
  *
  * Author: jlslate
- * Version: 2.0.0
+ * Version: 2.6.0
  */
 
 import groovy.transform.Field
