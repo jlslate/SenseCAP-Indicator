@@ -1,0 +1,27 @@
+{
+  "packageName": "SenseCAP Indicator",
+  "author": "jlslate",
+  "minimumHEVersion": "2.3.4",
+  "version": "2.6.0",
+  "dateReleased": "2026-07-04",
+  "releaseNotes": "Alarm clock page, per-slot tap-to-navigate, reorderable Mixed-page slots, and dashboard layout refinements.",
+  "documentationLink": "https://github.com/jlslate/SenseCAP-Indicator",
+  "apps": [
+    {
+      "id": "5b0e942f-73cc-4278-9250-69196356b465",
+      "name": "SenseCAP Indicator App",
+      "namespace": "jlslate",
+      "location": "https://raw.githubusercontent.com/jlslate/SenseCAP-Indicator/main/SenseCAP-Indicator-App.groovy",
+      "required": true
+    }
+  ],
+  "drivers": [
+    {
+      "id": "a848d55c-a8de-45fb-b67f-8c1e6d066eb0",
+      "name": "SenseCAP Indicator Driver",
+      "namespace": "jlslate",
+      "location": "https://raw.githubusercontent.com/jlslate/SenseCAP-Indicator/main/SenseCAP-Indicator-Driver.groovy",
+      "required": true
+    }
+  ]
+}
