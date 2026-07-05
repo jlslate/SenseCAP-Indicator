@@ -4,7 +4,7 @@
  */
 
 /**
- * SenseCAP Indicator Driver v2.6.0
+ * SenseCAP Indicator Driver v2.7.0
  *
  * Hubitat driver for the SenseCAP Indicator D1 (480x480) running openHASP firmware.
  * Communicates via MQTT. Up to 12 pages, each independently configurable.
@@ -35,6 +35,30 @@
  *   auto-revert after an adjustable delay (doTapNavigate/tapNavRevert)
  *
  * Changelog:
+ * v2.7.0 -- Consolidated 113 per-page commands (setPageXGridLayout,
+ *           setPageXMotionActive/Inactive/SlotEmpty, setPageXSlotValue,
+ *           updatePageXClockConfig/TapConfig/Labels/SlotTypes,
+ *           updateThermostatDisplayX -- one set per page) down to 9 generic
+ *           commands taking a Page # (ENUM 1-12 dropdown) as their first
+ *           parameter. Removed the 12 dead thermostatPage1..12
+ *           capability.thermostat preference inputs (never read anywhere).
+ *           Added a Preferences test harness (testThermostatPage/Value) that
+ *           fires updateThermostatDisplay from updated() for pushing a
+ *           thermostat display without a real device. Added
+ *           setPageBlockAutoSwitch(page, blocked): a per-page flag, pushed
+ *           immediately on every Preferences save (not gated behind the
+ *           reboot/layout-push cycle since it's just a state flag), that
+ *           stops setMotionActiveForPage/setSlotValueForPage from jumping
+ *           the display to that page on sensor activity -- the tile still
+ *           updates in place, and tap-to-navigate/backlight are unaffected.
+ *           Fixed two "0 means default" bugs where Groovy's ?: operator
+ *           treats 0 as falsy and silently substitutes the fallback: tap-nav
+ *           revertSeconds of 0 (meant to disable auto-revert) was reverting
+ *           to the 10s default, and fadeDuration of 0/1 (meant to fade
+ *           almost instantly) always took ~10s because fadeInterval() was
+ *           floored to 1s across a fixed 10 steps. fadeSteps() now shrinks
+ *           the step count for short durations instead of flooring the
+ *           interval, so total fade time actually tracks the setting.
  * v2.0.0 -- Renamed throughout from "SenseCAP Dashboard and Thermostat" to
  *           "SenseCAP Indicator" (definition's name field and this file's
  *           own header), matching the hardware's own name. Version reset to
@@ -154,7 +178,7 @@
  *           only, no device, driver-side per-minute tick).
  *
  * Author: jlslate
- * Version: 2.6.0
+ * Version: 2.7.0
  */
 
 import groovy.transform.Field
@@ -174,132 +198,35 @@ metadata {
         command "pushAllLayouts", [[name:"numberOfPages", type:"NUMBER"]]
         command "setNumberOfPages", [[name:"n", type:"NUMBER"]]
 
-        command "setPage1GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage2GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage3GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage4GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage5GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage6GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage7GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage8GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage9GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage10GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage11GridLayout", [[name:"g", type:"STRING"]]
-        command "setPage12GridLayout", [[name:"g", type:"STRING"]]
+        command "setPageGridLayout", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"g", type:"STRING"]]
 
-        command "setPage1MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage1MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage1SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage2MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage2MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage2SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage3MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage3MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage3SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage4MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage4MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage4SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage5MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage5MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage5SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage6MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage6MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage6SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage7MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage7MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage7SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage8MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage8MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage8SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage9MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage9MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage9SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage10MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage10MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage10SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage11MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage11MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage11SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage12MotionActive",   [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage12MotionInactive", [[name:"sensorIndex", type:"NUMBER"]]
-        command "setPage12SlotEmpty",      [[name:"sensorIndex", type:"NUMBER"]]
+        command "setPageMotionActive",   [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"sensorIndex", type:"NUMBER"]]
+        command "setPageMotionInactive", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"sensorIndex", type:"NUMBER"]]
+        command "setPageSlotEmpty",      [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"sensorIndex", type:"NUMBER"]]
 
         // Numeric value tiles (temperature/humidity/illumination/weather) -- app
         // pushes the formatted display text plus whether it's within the low/high
         // threshold; driver just renders (no icon lookup involved).
-        command "setPage1SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage2SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage3SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage4SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage5SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage6SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage7SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage8SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage9SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage10SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage11SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
-        command "setPage12SlotValue", [[name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
+        command "setPageSlotValue", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"sensorIndex", type:"NUMBER"], [name:"text", type:"STRING"], [name:"rangeState", type:"STRING"], [name:"iconKey", type:"STRING"]]
 
         // Clock slots (Mixed pages only, no device) -- driver ticks its own
         // per-minute schedule and re-renders time/date locally.
-        command "updatePage1ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage2ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage3ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage4ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage5ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage6ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage7ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage8ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage9ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage10ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage11ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage12ClockConfig", [[name:"config", type:"JSON_OBJECT"]]
+        command "updatePageClockConfig", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"config", type:"JSON_OBJECT"]]
 
         // Tap-to-navigate (any type not already tappable) -- app resolves the
         // configured target's current display position and sends it here;
         // driver navigates there on tap, then reverts after revertSeconds.
-        command "updatePage1TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage2TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage3TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage4TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage5TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage6TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage7TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage8TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage9TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage10TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage11TapConfig", [[name:"config", type:"JSON_OBJECT"]]
-        command "updatePage12TapConfig", [[name:"config", type:"JSON_OBJECT"]]
+        command "updatePageTapConfig", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"config", type:"JSON_OBJECT"]]
 
-        command "updatePage1Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage2Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage3Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage4Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage5Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage6Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage7Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage8Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage9Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage10Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage11Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage12Labels",    [[name:"labels",    type:"JSON_OBJECT"]]
-        command "updatePage1SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage2SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage3SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage4SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage5SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage6SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage7SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage8SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage9SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage10SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage11SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
-        command "updatePage12SlotTypes", [[name:"slotTypes", type:"JSON_OBJECT"]]
+        // When enabled, this page never steals focus on sensor activity --
+        // it just updates its tile in place. Tap-to-navigate above is unaffected.
+        command "setPageBlockAutoSwitch", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"blocked", type:"BOOL"]]
 
-        // Thermostat commands (one set per page -- app calls these directly)
-        (1..6).each { pg ->
-            command "updateThermostatDisplay",    [[name:"page", type:"NUMBER"], [name:"data", type:"JSON_OBJECT"]]
-        }
+        command "updatePageLabels",    [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"labels",    type:"JSON_OBJECT"]]
+        command "updatePageSlotTypes", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"slotTypes", type:"JSON_OBJECT"]]
+
+        // Thermostat commands -- app calls these directly
+        command "updateThermostatDisplay", [[name:"Page #", type:"ENUM", constraints:(1..12)*.toString()], [name:"value", type:"JSON_OBJECT"]]
         attribute "thermostatTapped", "string"
 
         // Register thermostat device so driver can handle taps directly
@@ -361,19 +288,11 @@ metadata {
         input name: "logLevel",               type: "enum",   title: "Logging Level",
               options: ["0":"None","1":"Info only","2":"Info + Debug"], defaultValue: "1", required: true
 
-        // Thermostat devices -- one per page, set automatically by the app
-        input name: "thermostatPage1", type: "capability.thermostat", title: "Thermostat -- Page 1", required: false, multiple: false
-        input name: "thermostatPage2", type: "capability.thermostat", title: "Thermostat -- Page 2", required: false, multiple: false
-        input name: "thermostatPage3", type: "capability.thermostat", title: "Thermostat -- Page 3", required: false, multiple: false
-        input name: "thermostatPage4", type: "capability.thermostat", title: "Thermostat -- Page 4", required: false, multiple: false
-        input name: "thermostatPage5", type: "capability.thermostat", title: "Thermostat -- Page 5", required: false, multiple: false
-        input name: "thermostatPage6", type: "capability.thermostat", title: "Thermostat -- Page 6", required: false, multiple: false
-        input name: "thermostatPage7", type: "capability.thermostat", title: "Thermostat -- Page 7", required: false, multiple: false
-        input name: "thermostatPage8", type: "capability.thermostat", title: "Thermostat -- Page 8", required: false, multiple: false
-        input name: "thermostatPage9", type: "capability.thermostat", title: "Thermostat -- Page 9", required: false, multiple: false
-        input name: "thermostatPage10", type: "capability.thermostat", title: "Thermostat -- Page 10", required: false, multiple: false
-        input name: "thermostatPage11", type: "capability.thermostat", title: "Thermostat -- Page 11", required: false, multiple: false
-        input name: "thermostatPage12", type: "capability.thermostat", title: "Thermostat -- Page 12", required: false, multiple: false
+        // Debug: manually push a thermostat display without a real thermostat device.
+        // Fires once from updated() when both fields are set, then clears itself.
+        input name: "testThermostatPage",  type: "enum", title: "Thermostat Page #", options: (1..12)*.toString(), required: false
+        input name: "testThermostatValue", type: "text", title: "Thermostat Value (JSON)",
+              description: 'e.g. {"temp":"72","heatSetpoint":"68","coolSetpoint":"76","mode":"heat","operatingState":"heating","away":"false"}', required: false
     }
 }
 
@@ -433,6 +352,16 @@ def installed() {
 
 def updated() {
     infoLog "[Dashboard] Preferences updated"
+    if (settings.testThermostatPage && settings.testThermostatValue) {
+        try {
+            Map data = new groovy.json.JsonSlurper().parseText(settings.testThermostatValue)
+            updateThermostatDisplay(settings.testThermostatPage, data)
+        } catch (Exception e) {
+            infoLog "[Dashboard] WARN -- test thermostat push failed: ${e.message}"
+        }
+        device.updateSetting("testThermostatPage",  [value: "", type: "enum"])
+        device.updateSetting("testThermostatValue", [value: "", type: "text"])
+    }
     initialize()
 }
 
@@ -462,52 +391,8 @@ def setNumberOfPages(n) {
     infoLog "[Dashboard] Number of pages set to ${num}"
 }
 
-def setPage1GridLayout(String g) {
-    applyGridLayout(1, g)
-}
-
-def setPage2GridLayout(String g) {
-    applyGridLayout(2, g)
-}
-
-def setPage3GridLayout(String g) {
-    applyGridLayout(3, g)
-}
-
-def setPage4GridLayout(String g) {
-    applyGridLayout(4, g)
-}
-
-def setPage5GridLayout(String g) {
-    applyGridLayout(5, g)
-}
-
-def setPage6GridLayout(String g) {
-    applyGridLayout(6, g)
-}
-
-def setPage7GridLayout(String g) {
-    applyGridLayout(7, g)
-}
-
-def setPage8GridLayout(String g) {
-    applyGridLayout(8, g)
-}
-
-def setPage9GridLayout(String g) {
-    applyGridLayout(9, g)
-}
-
-def setPage10GridLayout(String g) {
-    applyGridLayout(10, g)
-}
-
-def setPage11GridLayout(String g) {
-    applyGridLayout(11, g)
-}
-
-def setPage12GridLayout(String g) {
-    applyGridLayout(12, g)
+def setPageGridLayout(page, String g) {
+    applyGridLayout(page as int, g)
 }
 
 private void applyGridLayout(int page, String g) {
@@ -845,7 +730,8 @@ private void handleButtonTap(String topic, String payload) {
 
     Integer tapTarget = state[tapTargetKey(page, slot)] as Integer
     if (tapTarget != null) {
-        int revertSecs = (state[tapRevertKey(page, slot)] ?: 10) as int
+        def rsState = state[tapRevertKey(page, slot)]
+        int revertSecs = (rsState == null) ? 10 : (rsState as int)
         debugLog "[Dashboard] Tap-nav tile tapped (${sType}): page ${page} slot ${slot} -> page ${tapTarget}, revert in ${revertSecs}s"
         doTapNavigate(tapTarget, revertSecs)
     }
@@ -1029,18 +915,7 @@ private String thermostatColorForState(String opState, String mode) {
 // "above" vs the app's low/high threshold -- the driver just picks a color
 // and renders. iconKey (Weather only, "" otherwise) selects a condition
 // glyph -- see weatherIconGlyph().
-def setPage1SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(1, n as int, text as String, rangeState, iconKey) }
-def setPage2SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(2, n as int, text as String, rangeState, iconKey) }
-def setPage3SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(3, n as int, text as String, rangeState, iconKey) }
-def setPage4SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(4, n as int, text as String, rangeState, iconKey) }
-def setPage5SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(5, n as int, text as String, rangeState, iconKey) }
-def setPage6SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(6, n as int, text as String, rangeState, iconKey) }
-def setPage7SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(7, n as int, text as String, rangeState, iconKey) }
-def setPage8SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(8, n as int, text as String, rangeState, iconKey) }
-def setPage9SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(9, n as int, text as String, rangeState, iconKey) }
-def setPage10SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(10, n as int, text as String, rangeState, iconKey) }
-def setPage11SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(11, n as int, text as String, rangeState, iconKey) }
-def setPage12SlotValue(n, text, rangeState, iconKey) { setSlotValueForPage(12, n as int, text as String, rangeState, iconKey) }
+def setPageSlotValue(page, n, text, rangeState, iconKey) { setSlotValueForPage(page as int, n as int, text as String, rangeState, iconKey) }
 
 // Picks the tile background color for a numeric slot given its sensor type
 // and where the current value falls relative to the low/high threshold.
@@ -1085,7 +960,7 @@ private void setSlotValueForPage(int page, int idx, String text, rangeState, ico
     if (!ok) {
         if (wasOk) {
             // Transition into alert -- jump to page + backlight, mirroring motion-active
-            if (!state.suppressNavigation) {
+            if (!state.suppressNavigation && state["blockAutoSwitch${page}"] != true) {
                 unschedule("rotatePage")
                 safePub("hasp/${settings.haspNode ?: 'plate'}/command/page", "${page}")
             }
@@ -1329,18 +1204,7 @@ private void renderWeatherTile(int page, int idx, String iconGlyph, String dataT
 
 // Called by the app at layout-push time to register per-slot clock display
 // options. Rendering itself happens on the driver's own per-minute tick.
-def updatePage1ClockConfig(config) { applyClockConfig(config, 1) }
-def updatePage2ClockConfig(config) { applyClockConfig(config, 2) }
-def updatePage3ClockConfig(config) { applyClockConfig(config, 3) }
-def updatePage4ClockConfig(config) { applyClockConfig(config, 4) }
-def updatePage5ClockConfig(config) { applyClockConfig(config, 5) }
-def updatePage6ClockConfig(config) { applyClockConfig(config, 6) }
-def updatePage7ClockConfig(config) { applyClockConfig(config, 7) }
-def updatePage8ClockConfig(config) { applyClockConfig(config, 8) }
-def updatePage9ClockConfig(config) { applyClockConfig(config, 9) }
-def updatePage10ClockConfig(config) { applyClockConfig(config, 10) }
-def updatePage11ClockConfig(config) { applyClockConfig(config, 11) }
-def updatePage12ClockConfig(config) { applyClockConfig(config, 12) }
+def updatePageClockConfig(page, config) { applyClockConfig(config, page as int) }
 
 private void applyClockConfig(config, int page) {
     if (!(config instanceof Map)) {
@@ -1361,18 +1225,16 @@ private void applyClockConfig(config, int page) {
 // Called by the app at layout-push time to register per-slot tap-to-navigate
 // targets. Config keys not present in the map are cleared (so disabling
 // tap-nav for a slot doesn't leave stale state behind).
-def updatePage1TapConfig(config) { applyTapConfig(config, 1) }
-def updatePage2TapConfig(config) { applyTapConfig(config, 2) }
-def updatePage3TapConfig(config) { applyTapConfig(config, 3) }
-def updatePage4TapConfig(config) { applyTapConfig(config, 4) }
-def updatePage5TapConfig(config) { applyTapConfig(config, 5) }
-def updatePage6TapConfig(config) { applyTapConfig(config, 6) }
-def updatePage7TapConfig(config) { applyTapConfig(config, 7) }
-def updatePage8TapConfig(config) { applyTapConfig(config, 8) }
-def updatePage9TapConfig(config) { applyTapConfig(config, 9) }
-def updatePage10TapConfig(config) { applyTapConfig(config, 10) }
-def updatePage11TapConfig(config) { applyTapConfig(config, 11) }
-def updatePage12TapConfig(config) { applyTapConfig(config, 12) }
+def updatePageTapConfig(page, config) { applyTapConfig(config, page as int) }
+
+// When blocked, sensor activity on this page still updates its tile but
+// never jumps the display to it or interrupts rotation.
+def setPageBlockAutoSwitch(page, blocked) {
+    int pg = page as int
+    boolean b = (blocked == true || blocked == "true")
+    state["blockAutoSwitch${pg}"] = b
+    infoLog "[Dashboard] Auto-switch block for page ${pg} set to ${b}"
+}
 
 private void applyTapConfig(config, int page) {
     if (!(config instanceof Map)) {
@@ -2070,184 +1932,22 @@ private List<String> layout6x5(int page) {
 
 // ── Page slot state commands ───────────────────────────────────────────────────
 
-def setPage1MotionActive(n) {
+def setPageMotionActive(page, n) {
+    int pg = page as int
     int i = n as int
-    if (i >= 1 && i <= maxSensors(1)) setMotionActiveForPage(1, i)
+    if (i >= 1 && i <= maxSensors(pg)) setMotionActiveForPage(pg, i)
 }
 
-def setPage1MotionInactive(n) {
+def setPageMotionInactive(page, n) {
+    int pg = page as int
     int i = n as int
-    if (i >= 1 && i <= maxSensors(1)) setMotionInactiveForPage(1, i)
+    if (i >= 1 && i <= maxSensors(pg)) setMotionInactiveForPage(pg, i)
 }
 
-def setPage1SlotEmpty(n) {
+def setPageSlotEmpty(page, n) {
+    int pg = page as int
     int i = n as int
-    if (i >= 1 && i <= maxSensors(1)) setSlotEmptyForPage(1, i)
-}
-
-def setPage2MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(2)) setMotionActiveForPage(2, i)
-}
-
-def setPage2MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(2)) setMotionInactiveForPage(2, i)
-}
-
-def setPage2SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(2)) setSlotEmptyForPage(2, i)
-}
-
-def setPage3MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(3)) setMotionActiveForPage(3, i)
-}
-
-def setPage3MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(3)) setMotionInactiveForPage(3, i)
-}
-
-def setPage3SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(3)) setSlotEmptyForPage(3, i)
-}
-
-def setPage4MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(4)) setMotionActiveForPage(4, i)
-}
-
-def setPage4MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(4)) setMotionInactiveForPage(4, i)
-}
-
-def setPage4SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(4)) setSlotEmptyForPage(4, i)
-}
-
-def setPage5MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(5)) setMotionActiveForPage(5, i)
-}
-
-def setPage5MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(5)) setMotionInactiveForPage(5, i)
-}
-
-def setPage5SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(5)) setSlotEmptyForPage(5, i)
-}
-
-def setPage6MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(6)) setMotionActiveForPage(6, i)
-}
-
-def setPage6MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(6)) setMotionInactiveForPage(6, i)
-}
-
-def setPage6SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(6)) setSlotEmptyForPage(6, i)
-}
-
-def setPage7MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(7)) setMotionActiveForPage(7, i)
-}
-
-def setPage7MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(7)) setMotionInactiveForPage(7, i)
-}
-
-def setPage7SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(7)) setSlotEmptyForPage(7, i)
-}
-
-def setPage8MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(8)) setMotionActiveForPage(8, i)
-}
-
-def setPage8MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(8)) setMotionInactiveForPage(8, i)
-}
-
-def setPage8SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(8)) setSlotEmptyForPage(8, i)
-}
-
-def setPage9MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(9)) setMotionActiveForPage(9, i)
-}
-
-def setPage9MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(9)) setMotionInactiveForPage(9, i)
-}
-
-def setPage9SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(9)) setSlotEmptyForPage(9, i)
-}
-
-def setPage10MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(10)) setMotionActiveForPage(10, i)
-}
-
-def setPage10MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(10)) setMotionInactiveForPage(10, i)
-}
-
-def setPage10SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(10)) setSlotEmptyForPage(10, i)
-}
-
-def setPage11MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(11)) setMotionActiveForPage(11, i)
-}
-
-def setPage11MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(11)) setMotionInactiveForPage(11, i)
-}
-
-def setPage11SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(11)) setSlotEmptyForPage(11, i)
-}
-
-def setPage12MotionActive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(12)) setMotionActiveForPage(12, i)
-}
-
-def setPage12MotionInactive(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(12)) setMotionInactiveForPage(12, i)
-}
-
-def setPage12SlotEmpty(n) {
-    int i = n as int
-    if (i >= 1 && i <= maxSensors(12)) setSlotEmptyForPage(12, i)
+    if (i >= 1 && i <= maxSensors(pg)) setSlotEmptyForPage(pg, i)
 }
 
 
@@ -2285,7 +1985,8 @@ private void setMotionActiveForPage(int page, int idx) {
     String ac = settings.colorActive ?: "#FF0000"
     publishIconJsonl(settings.haspNode ?: "plate", page, idx, activeIconFor(page, idx), ac)
 
-    if (!state.suppressNavigation) {
+    debugLog "[Dashboard] Nav check p${page}s${idx}: suppressNavigation=${state.suppressNavigation}, blockAutoSwitch${page}=${state["blockAutoSwitch${page}"]}"
+    if (!state.suppressNavigation && state["blockAutoSwitch${page}"] != true) {
         // Only stop rotation and jump to page when sensor goes active mid-session
         unschedule("rotatePage")
         String node = settings.haspNode ?: "plate"
@@ -2331,7 +2032,6 @@ private void setMotionInactiveForPage(int page, int idx) {
     // Numeric/clock slots are driven by setSlotValueForPage / clockTick -- not icons
     if (isNumericType(sType) || sType == "clock") { unschedule(fadeKey); state.remove(fadeKey); return }
 
-    String sTypeForFade = state[typeKey(page, idx)] ?: state["pageType${page}"] ?: "motion"
     if (wasActive) {
         unschedule(fadeKey); state[fadeKey] = 0
         // Update icon to inactive (person standing still) but keep red color -- fade handles color
@@ -2355,7 +2055,7 @@ private void setMotionInactiveForPage(int page, int idx) {
                 int secs = (settings.motionBacklightTimeout ?: 60) as int
                 if (secs > 0) runIn(secs, "motionTimeoutBacklightOff")
             } else {
-                runIn((FADE_STEPS + 1) * fadeInterval() + 2, "backlightOnAfterFade")
+                runIn((fadeSteps() + 1) * fadeInterval() + 2, "backlightOnAfterFade")
             }
         }
     } else {
@@ -2384,100 +2084,12 @@ private void setSlotEmptyForPage(int page, int idx) {
 
 // ── Label / type updates ───────────────────────────────────────────────────────
 
-def updatePage1Labels(labels) {
-    applyLabels(labels, 1)
+def updatePageLabels(page, labels) {
+    applyLabels(labels, page as int)
 }
 
-def updatePage2Labels(labels) {
-    applyLabels(labels, 2)
-}
-
-def updatePage3Labels(labels) {
-    applyLabels(labels, 3)
-}
-
-def updatePage4Labels(labels) {
-    applyLabels(labels, 4)
-}
-
-def updatePage5Labels(labels) {
-    applyLabels(labels, 5)
-}
-
-def updatePage6Labels(labels) {
-    applyLabels(labels, 6)
-}
-
-def updatePage7Labels(labels) {
-    applyLabels(labels, 7)
-}
-
-def updatePage8Labels(labels) {
-    applyLabels(labels, 8)
-}
-
-def updatePage9Labels(labels) {
-    applyLabels(labels, 9)
-}
-
-def updatePage10Labels(labels) {
-    applyLabels(labels, 10)
-}
-
-def updatePage11Labels(labels) {
-    applyLabels(labels, 11)
-}
-
-def updatePage12Labels(labels) {
-    applyLabels(labels, 12)
-}
-
-def updatePage1SlotTypes(types) {
-    applySlotTypes(types, 1)
-}
-
-def updatePage2SlotTypes(types) {
-    applySlotTypes(types, 2)
-}
-
-def updatePage3SlotTypes(types) {
-    applySlotTypes(types, 3)
-}
-
-def updatePage4SlotTypes(types) {
-    applySlotTypes(types, 4)
-}
-
-def updatePage5SlotTypes(types) {
-    applySlotTypes(types, 5)
-}
-
-def updatePage6SlotTypes(types) {
-    applySlotTypes(types, 6)
-}
-
-def updatePage7SlotTypes(types) {
-    applySlotTypes(types, 7)
-}
-
-def updatePage8SlotTypes(types) {
-    applySlotTypes(types, 8)
-}
-
-def updatePage9SlotTypes(types) {
-    applySlotTypes(types, 9)
-}
-
-def updatePage10SlotTypes(types) {
-    applySlotTypes(types, 10)
-}
-
-def updatePage11SlotTypes(types) {
-    applySlotTypes(types, 11)
-}
-
-def updatePage12SlotTypes(types) {
-    applySlotTypes(types, 12)
+def updatePageSlotTypes(page, types) {
+    applySlotTypes(types, page as int)
 }
 
 private void applyLabels(labels, int page) {
@@ -2554,11 +2166,25 @@ def rotatePage() {
 
 // ── Fade engine ────────────────────────────────────────────────────────────────
 
-@Field static final int FADE_STEPS = 10
+@Field static final int MAX_FADE_STEPS = 10
+
+// settings.fadeDuration ?: 30 would silently replace an explicit 0 with 30 --
+// Groovy treats 0 as falsy -- so use an explicit null-check instead.
+private int fadeDurationSetting() {
+    def fd = settings.fadeDuration
+    return (fd == null) ? 30 : (fd as int)
+}
+
+// Hubitat's runIn() can't schedule sub-second delays, so a single step can
+// never take less than 1 second. For fadeDuration under MAX_FADE_STEPS,
+// shrink the step count (instead of flooring the interval) so the total
+// fade time actually tracks the configured duration.
+private int fadeSteps() {
+    return Math.max(1, Math.min(MAX_FADE_STEPS, fadeDurationSetting()))
+}
 
 private int fadeInterval() {
-    int dur = (settings.fadeDuration ?: 30) as int
-    return Math.max(1, (int)(dur / FADE_STEPS))
+    return Math.max(1, (int)(fadeDurationSetting() / fadeSteps()))
 }
 
 private void scheduleFadeStep(int page, int idx) {
@@ -2586,7 +2212,8 @@ def fadeContinueAll() {
             def stepObj = state[fadeKey]
             if (stepObj == null) return
             int step = (stepObj as int) + 1
-            if (step >= FADE_STEPS) {
+            int steps = fadeSteps()
+            if (step >= steps) {
                 state.remove(fadeKey)
                 state.remove("fadeTarget_${pg}_${idx}")
                 String ic = inactiveColorFor(pg, idx)
@@ -2596,7 +2223,7 @@ def fadeContinueAll() {
                 anyRemaining = true
                 // Interpolate from active red to inactive color
                 String ic    = inactiveColorFor(pg, idx)
-                String color = interpolateColor("#FF0000", ic, step, FADE_STEPS)
+                String color = interpolateColor("#FF0000", ic, step, steps)
                 publishColor(pg, idx, color)
             }
         }
