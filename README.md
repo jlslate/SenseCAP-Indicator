@@ -13,8 +13,7 @@
   - Hubitat - copy driver code from github
   - Hubitat - copy app code from github
   - SenseCAP - update with OpenHASP and connect to WiFi
-  - SenseCAP - connect via serial port
-  - SenseCAP - connect via WiFi and configure it
+  - SenseCAP - connect via browser and configure it
   - Hubitat - create a virtual device using the driver
   - Hubitat - Install and configure app
 
