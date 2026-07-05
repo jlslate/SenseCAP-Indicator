@@ -4,7 +4,7 @@
  */
 
 /**
- * SenseCAP Indicator App v2.7.0
+ * SenseCAP Indicator App v2.7.1
  *
  * Hubitat app companion to SenseCAP Indicator Driver.
  * Manages up to 12 display pages on the SenseCAP Indicator D1 via openHASP/MQTT.
@@ -36,10 +36,10 @@
  * - getPageOrder() for UI (all pages); activePageOrder() for driver operations
  *
  * Changelog:
- * v2.7.0 -- Converted all dynamic-dispatch driver calls
+ * v2.7.1 -- Converted all dynamic-dispatch driver calls
  *           (indicatorDevice."methodName${page}Suffix"(...)) to direct calls
  *           against the driver's new consolidated commands, with page passed
- *           as an explicit argument, matching driver v2.7.0's 113->9 command
+ *           as an explicit argument, matching driver v2.7.1's 113->9 command
  *           consolidation. Added a per-page "Don't switch to this page
  *           automatically" checkbox (pageXBlockAutoSwitch), pushed via
  *           setPageBlockAutoSwitch immediately in initialize() on every save
@@ -170,7 +170,7 @@
  *           thermostatPeriodicSync so drift is caught between mode changes.
  *
  * Author: jlslate (slate)
- * Version: 2.7.0
+ * Version: 2.7.1
  */
 
 definition(
@@ -330,6 +330,7 @@ def mainPage() {
                     int activePages = ord.size()
                     boolean isLastDisplayed = (dispPos == activePages)
                     if (isLastDisplayed && activePages < maxPages()) {
+                        paragraph "<hr style='border:none;border-top:6px solid #1976D2;margin:8px 0;'>"
                         input name: "addPage${activePages + 1}",
                               type: "bool",
                               title: "Add page ${activePages + 1}",
