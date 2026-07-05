@@ -4,7 +4,7 @@
  */
 
 /**
- * SenseCAP Indicator App v2.6.0
+ * SenseCAP Indicator App v2.7.0
  *
  * Hubitat app companion to SenseCAP Indicator Driver.
  * Manages up to 12 display pages on the SenseCAP Indicator D1 via openHASP/MQTT.
@@ -36,6 +36,24 @@
  * - getPageOrder() for UI (all pages); activePageOrder() for driver operations
  *
  * Changelog:
+ * v2.7.0 -- Converted all dynamic-dispatch driver calls
+ *           (indicatorDevice."methodName${page}Suffix"(...)) to direct calls
+ *           against the driver's new consolidated commands, with page passed
+ *           as an explicit argument, matching driver v2.7.0's 113->9 command
+ *           consolidation. Added a per-page "Don't switch to this page
+ *           automatically" checkbox (pageXBlockAutoSwitch), pushed via
+ *           setPageBlockAutoSwitch immediately in initialize() on every save
+ *           -- deliberately NOT gated behind layoutFingerprint/the
+ *           reboot+pushSlotTypesAndLayouts cycle, since it's just a driver
+ *           state flag and doesn't need a display rebuild to take effect.
+ *           Fixed layoutFingerprint() to include per-slot custom label text
+ *           (pageXSlotLabelN / MixedSlotNLabel) -- previously a label-only
+ *           edit never changed the fingerprint, so pushPageLabels never
+ *           re-ran and the new label silently never reached the driver.
+ *           Fixed the same "0 is falsy" Elvis-operator bug as the driver:
+ *           tap-nav's Revert-after-seconds field ignored an explicit 0
+ *           (meant to disable auto-revert) and fell back to 10s in both
+ *           pushPageTapConfig branches (dedicated-page and mixed-slot).
  * v2.1.0 -- Mixed-page slots can now be reordered: Move Up/Down buttons next
  *           to each slot's Remove button call swapMixedSlotSettings, which
  *           does a true swap (via a scratch slot past maxMixedSlots()) of
@@ -152,7 +170,7 @@
  *           thermostatPeriodicSync so drift is caught between mode changes.
  *
  * Author: jlslate (slate)
- * Version: 2.6.0
+ * Version: 2.7.0
  */
 
 definition(
@@ -227,6 +245,15 @@ def mainPage() {
                     }
 
                     String pType = settings["page${srcPage}Type"] ?: ""
+
+                    if (pType) {
+                        input name: "page${srcPage}BlockAutoSwitch",
+                              type: "bool",
+                              title: "Don't switch to this page automatically when its sensor is active",
+                              defaultValue: false,
+                              submitOnChange: true,
+                              width: 12
+                    }
 
                     if (pType == "mixed") {
                         renderMixedPageInputs(srcPage)
@@ -934,6 +961,7 @@ private String layoutFingerprint() {
                 } else {
                     def dev = settings["page${pg}MixedSlot${slot}Device_${st}"]
                     parts << "s${slot}:${st}:${dev?.id ?: ''}"
+                    parts << "lbl${slot}:${settings["page${pg}MixedSlot${slot}Label"]}"
                     if (isNumericType(st)) {
                         parts << "thresh${slot}:${settings["page${pg}MixedSlot${slot}Low"]}:${settings["page${pg}MixedSlot${slot}High"]}"
                     }
@@ -946,6 +974,8 @@ private String layoutFingerprint() {
             def devs = settings["page${pg}Devices_${pType}"]
             String devIds = devs ? (devs instanceof List ? devs.collect { it.id }.sort().join(",") : devs.id.toString()) : ""
             parts << "devs:${devIds}"
+            int slotCnt = devs ? (devs instanceof List ? devs.size() : 1) : 0
+            if (slotCnt > 0) (1..slotCnt).each { slot -> parts << "lbl${slot}:${settings["page${pg}SlotLabel${slot}"]}" }
             if (isNumericType(pType)) {
                 parts << "thresh:${settings["page${pg}NumLow"]}:${settings["page${pg}NumHigh"]}"
             }
@@ -983,9 +1013,9 @@ def initialize() {
             grid = nxnString(devs.size())
         }
         try {
-            settings.indicatorDevice."setPage${dispPage}GridLayout"(grid)
+            settings.indicatorDevice.setPageGridLayout(dispPage, grid)
         } catch (Exception e) {
-            infoLog "[Dashboard] WARN -- setPage${dispPage}GridLayout failed: ${e.message}"
+            infoLog "[Dashboard] WARN -- setPageGridLayout failed: ${e.message}"
         }
     }
 
@@ -1005,6 +1035,13 @@ def initialize() {
         state["slotMap${dispPage}"] = slotMap
         state["pageType${dispPage}"] = sType
         subscribePageDevices(dispPage, srcPage, sType)
+    }
+
+    // Auto-switch-block is just a driver state flag -- push it immediately on
+    // every save instead of waiting on the (possibly reboot-gated) full layout push.
+    order.eachWithIndex { srcPage, dispIdx ->
+        int dispPage = dispIdx + 1
+        pushPageAutoSwitchConfig(dispPage, srcPage)
     }
 
     subscribe(settings.indicatorDevice, "displayRebooted", displayRebootedHandler)
@@ -1138,9 +1175,9 @@ private void pushPageSlotTypes(int dispPage, int srcPage, List devices, String s
     }
     if (!types) return
     try {
-        settings.indicatorDevice."updatePage${dispPage}SlotTypes"(types)
+        settings.indicatorDevice.updatePageSlotTypes(dispPage, types)
     } catch (Exception e) {
-        infoLog "[Dashboard] WARN -- updatePage${dispPage}SlotTypes failed: ${e.message}"
+        infoLog "[Dashboard] WARN -- updatePageSlotTypes failed: ${e.message}"
     }
 }
 
@@ -1184,9 +1221,9 @@ private void pushPageLabels(int dispPage, int srcPage, List devices, String sTyp
     }
     if (!labels) return
     try {
-        settings.indicatorDevice."updatePage${dispPage}Labels"(labels)
+        settings.indicatorDevice.updatePageLabels(dispPage, labels)
     } catch (Exception e) {
-        infoLog "[Dashboard] WARN -- updatePage${dispPage}Labels failed: ${e.message}"
+        infoLog "[Dashboard] WARN -- updatePageLabels failed: ${e.message}"
     }
 }
 
@@ -1207,9 +1244,9 @@ private void pushPageClockConfig(int dispPage, int srcPage, String sType) {
     }
     if (!cfg) return
     try {
-        settings.indicatorDevice."updatePage${dispPage}ClockConfig"(cfg)
+        settings.indicatorDevice.updatePageClockConfig(dispPage, cfg)
     } catch (Exception e) {
-        infoLog "[Dashboard] WARN -- updatePage${dispPage}ClockConfig failed: ${e.message}"
+        infoLog "[Dashboard] WARN -- updatePageClockConfig failed: ${e.message}"
     }
 }
 
@@ -1232,7 +1269,8 @@ private void pushPageTapConfig(int dispPage, int srcPage, String sType) {
             if (targetSrc == null) return
             int targetDisp = ord.indexOf(targetSrc) + 1
             if (targetDisp < 1) return
-            int revert = (settings["page${srcPage}MixedSlot${slot}TapRevertSeconds"] ?: 10) as int
+            def rs = settings["page${srcPage}MixedSlot${slot}TapRevertSeconds"]
+            int revert = (rs == null) ? 10 : (rs as int)
             cfg[slot] = [targetPage: targetDisp, revertSeconds: revert]
         }
     } else if (sType && !isTappableAlready(sType)) {
@@ -1241,7 +1279,8 @@ private void pushPageTapConfig(int dispPage, int srcPage, String sType) {
             if (targetSrc != null) {
                 int targetDisp = ord.indexOf(targetSrc) + 1
                 if (targetDisp >= 1) {
-                    int revert = (settings["page${srcPage}TapRevertSeconds"] ?: 10) as int
+                    def rs = settings["page${srcPage}TapRevertSeconds"]
+                    int revert = (rs == null) ? 10 : (rs as int)
                     int cnt = pageDeviceCount(srcPage)
                     (1..cnt).each { slot -> cfg[slot] = [targetPage: targetDisp, revertSeconds: revert] }
                 }
@@ -1250,9 +1289,19 @@ private void pushPageTapConfig(int dispPage, int srcPage, String sType) {
     }
 
     try {
-        settings.indicatorDevice."updatePage${dispPage}TapConfig"(cfg)
+        settings.indicatorDevice.updatePageTapConfig(dispPage, cfg)
     } catch (Exception e) {
-        infoLog "[Dashboard] WARN -- updatePage${dispPage}TapConfig failed: ${e.message}"
+        infoLog "[Dashboard] WARN -- updatePageTapConfig failed: ${e.message}"
+    }
+}
+
+// Blocks the driver from jumping to this page on sensor activity -- the
+// tile still updates in place. Independent of tap-to-navigate above.
+private void pushPageAutoSwitchConfig(int dispPage, int srcPage) {
+    try {
+        settings.indicatorDevice.setPageBlockAutoSwitch(dispPage, settings["page${srcPage}BlockAutoSwitch"] == true)
+    } catch (Exception e) {
+        infoLog "[Dashboard] WARN -- setPageBlockAutoSwitch failed: ${e.message}"
     }
 }
 
@@ -1584,9 +1633,9 @@ private void handleEvent(evt, String sType, String activeValue) {
                 found = true
                 debugLog "Event p${dispPage}s${slot} ${sType} mixed (${evt.displayName}): ${evt.value}"
                 if (evt.value == activeValue) {
-                    settings.indicatorDevice."setPage${dispPage}MotionActive"(slot)
+                    settings.indicatorDevice.setPageMotionActive(dispPage, slot)
                 } else {
-                    settings.indicatorDevice."setPage${dispPage}MotionInactive"(slot)
+                    settings.indicatorDevice.setPageMotionInactive(dispPage, slot)
                 }
             }
         } else {
@@ -1597,9 +1646,9 @@ private void handleEvent(evt, String sType, String activeValue) {
             found = true
             debugLog "Event p${dispPage}s${slot} ${sType} (${evt.displayName}): ${evt.value}"
             if (evt.value == activeValue) {
-                settings.indicatorDevice."setPage${dispPage}MotionActive"(slot)
+                settings.indicatorDevice.setPageMotionActive(dispPage, slot)
             } else {
-                settings.indicatorDevice."setPage${dispPage}MotionInactive"(slot)
+                settings.indicatorDevice.setPageMotionInactive(dispPage, slot)
             }
         }
     }
@@ -1779,9 +1828,9 @@ private void pushNumericSlotValue(int dispPage, int srcPage, int slot, String sT
 
     debugLog "[Dashboard] Numeric p${dispPage}s${slot} ${sType}: ${text} rangeState=${rangeState} iconKey=${iconKey}"
     try {
-        settings.indicatorDevice."setPage${dispPage}SlotValue"(slot, text, rangeState, iconKey)
+        settings.indicatorDevice.setPageSlotValue(dispPage, slot, text, rangeState, iconKey)
     } catch (Exception e) {
-        infoLog "[Dashboard] WARN -- setPage${dispPage}SlotValue failed: ${e.message}"
+        infoLog "[Dashboard] WARN -- setPageSlotValue failed: ${e.message}"
     }
 }
 
@@ -1867,7 +1916,7 @@ def displayRebootedHandler(evt) {
             List devs = pageDevices(srcPage)
             grid = nxnString(devs.size())
         }
-        try { settings.indicatorDevice."setPage${dispPage}GridLayout"(grid) } catch (Exception e) { }
+        try { settings.indicatorDevice.setPageGridLayout(dispPage, grid) } catch (Exception e) { }
     }
     try { settings.indicatorDevice.setNumberOfPages(getPageOrder().size()) } catch (Exception e) { }
     runIn(2, "pushSlotTypesAndLayouts")
@@ -1888,9 +1937,9 @@ def syncLightStates() {
                 if (!dev) return
                 String cur = dev.currentValue("switch") ?: "off"
                 if (cur == "on") {
-                    settings.indicatorDevice."setPage${dispPage}MotionActive"(slot)
+                    settings.indicatorDevice.setPageMotionActive(dispPage, slot)
                 } else {
-                    settings.indicatorDevice."setPage${dispPage}MotionInactive"(slot)
+                    settings.indicatorDevice.setPageMotionInactive(dispPage, slot)
                 }
                 pauseExecution(30)
             }
@@ -1901,9 +1950,9 @@ def syncLightStates() {
                 int slot = idx + 1
                 String cur = dev.currentValue("switch") ?: "off"
                 if (cur == "on") {
-                    settings.indicatorDevice."setPage${dispPage}MotionActive"(slot)
+                    settings.indicatorDevice.setPageMotionActive(dispPage, slot)
                 } else {
-                    settings.indicatorDevice."setPage${dispPage}MotionInactive"(slot)
+                    settings.indicatorDevice.setPageMotionInactive(dispPage, slot)
                 }
                 pauseExecution(30)
             }
@@ -1954,16 +2003,16 @@ def syncAllSensors() {
             String cur = dev.currentValue(attr) ?: ""
             debugLog "Sync p${dispPage}s${slot} ${sType} (${dev.displayName}) = ${cur}"
             if (cur == actVal) {
-                settings.indicatorDevice."setPage${dispPage}MotionActive"(slot)
+                settings.indicatorDevice.setPageMotionActive(dispPage, slot)
             } else {
-                settings.indicatorDevice."setPage${dispPage}MotionInactive"(slot)
+                settings.indicatorDevice.setPageMotionInactive(dispPage, slot)
             }
             pauseExecution(40)
         }
 
         if (pType != "mixed" && pType != "thermostat" && entries.size() < totalSlots) {
             ((entries.size() + 1)..totalSlots).each { slot ->
-                settings.indicatorDevice."setPage${dispPage}SlotEmpty"(slot)
+                settings.indicatorDevice.setPageSlotEmpty(dispPage, slot)
                 pauseExecution(30)
             }
         }
