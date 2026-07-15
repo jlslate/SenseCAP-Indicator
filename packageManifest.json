@@ -3,8 +3,8 @@
   "author": "jlslate",
   "minimumHEVersion": "2.3.4",
   "version": "2.7.1",
-  "dateReleased": "2026-07-04",
-  "releaseNotes": "Consolidated 113 per-page commands down to 9 generic ones (Page # dropdown), added a per-page auto-switch-block toggle, and fixed several settings that silently ignored a value of 0 (tap-nav revert seconds, fade duration).",
+  "dateReleased": "2026-07-15",
+  "releaseNotes": "Fixed manual +/- thermostat taps being silently reverted by Home/Away auto-control within a minute (taps now persist into the page's Home band). Fixed the optional external temperature sensor not triggering a live display refresh when its reading changed.",
   "documentationLink": "https://github.com/jlslate/SenseCAP-Indicator",
   "apps": [
     {
