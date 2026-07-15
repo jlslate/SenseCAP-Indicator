@@ -4,7 +4,7 @@
  */
 
 /**
- * SenseCAP Indicator Driver v2.7.0
+ * SenseCAP Indicator Driver v2.7.1
  *
  * Hubitat driver for the SenseCAP Indicator D1 (480x480) running openHASP firmware.
  * Communicates via MQTT. Up to 12 pages, each independently configurable.
@@ -35,7 +35,7 @@
  *   auto-revert after an adjustable delay (doTapNavigate/tapNavRevert)
  *
  * Changelog:
- * v2.7.0 -- Consolidated 113 per-page commands (setPageXGridLayout,
+ * v2.7.1 -- Consolidated 113 per-page commands (setPageXGridLayout,
  *           setPageXMotionActive/Inactive/SlotEmpty, setPageXSlotValue,
  *           updatePageXClockConfig/TapConfig/Labels/SlotTypes,
  *           updateThermostatDisplayX -- one set per page) down to 9 generic
@@ -178,7 +178,7 @@
  *           only, no device, driver-side per-minute tick).
  *
  * Author: jlslate
- * Version: 2.7.0
+ * Version: 2.7.1
  */
 
 import groovy.transform.Field
