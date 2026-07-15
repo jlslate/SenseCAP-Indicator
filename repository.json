@@ -9,6 +9,13 @@
       "location": "https://raw.githubusercontent.com/jlslate/SenseCAP-Indicator/main/packageManifest.json",
       "description": "Drives up to 12 pages on a SenseCAP Indicator D1 touchscreen (openHASP/MQTT): motion, contact, water, smoke, lock, garage, light, thermostat, weather, and an alarm clock page. By jlslate.",
       "tags": ["Dashboards", "MQTT", "Multi Sensors", "SenseCAP", "jlslate"]
+    },
+    {
+      "name": "Composite Device",
+      "category": "Utility",
+      "location": "https://raw.githubusercontent.com/jlslate/Composite-Device/main/packageManifest.json",
+      "description": "Pools one or more real devices of the same type (water, lock, door, window, smoke, motion, garage door, temperature, humidity, or illuminance) into a single virtual device. By jlslate.",
+      "tags": ["Multi Sensors"]
     }
   ]
 }
