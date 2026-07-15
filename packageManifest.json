@@ -2,7 +2,7 @@
   "packageName": "SenseCAP Indicator",
   "author": "jlslate",
   "minimumHEVersion": "2.3.4",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "dateReleased": "2026-07-04",
   "releaseNotes": "Consolidated 113 per-page commands down to 9 generic ones (Page # dropdown), added a per-page auto-switch-block toggle, and fixed several settings that silently ignored a value of 0 (tap-nav revert seconds, fade duration).",
   "documentationLink": "https://github.com/jlslate/SenseCAP-Indicator",
