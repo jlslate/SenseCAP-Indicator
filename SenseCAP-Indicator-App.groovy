@@ -4,7 +4,7 @@
  */
 
 /**
- * SenseCAP Indicator App v2.7.2
+ * SenseCAP Indicator App v2.7.3
  *
  * Hubitat app companion to SenseCAP Indicator Driver.
  * Manages up to 12 display pages on the SenseCAP Indicator D1 via openHASP/MQTT.
@@ -170,7 +170,7 @@
  *           thermostatPeriodicSync so drift is caught between mode changes.
  *
  * Author: jlslate (slate)
- * Version: 2.7.2
+ * Version: 2.7.3
  */
 
 definition(
