@@ -681,6 +681,21 @@ def parse(String description) {
     }
 
     String cfgNode = settings.haspNode ?: "plate"
+
+    // Physical green button (GPIO38, configured as a Push Button input in openHASP) --
+    // openHASP only reports raw down/up state here, it doesn't advance the page itself,
+    // so react on release and reuse the same rotatePage() the auto-rotation timer uses.
+    if (msg.topic.contains("/state/input38") && msg.topic.contains(cfgNode)) {
+        try {
+            def json = new groovy.json.JsonSlurper().parseText(msg.payload)
+            if (json.event == "up") {
+                infoLog "[Dashboard] Physical button (GPIO38) pressed -- advancing page"
+                rotatePage()
+            }
+        } catch (Exception e) { infoLog "[Dashboard] WARN -- Could not parse input38 event: ${e.message}" }
+        return
+    }
+
     if (msg.topic.contains("/state/p") && msg.topic.contains("b") && msg.topic.contains(cfgNode)) {
         infoLog "[Dashboard] Button topic: ${msg.topic} payload: ${msg.payload}"
         handleButtonTap(msg.topic, msg.payload)
@@ -2161,7 +2176,10 @@ def rotatePage() {
     String node = settings.haspNode ?: "plate"
     safePub("hasp/${node}/command/page", "${next}")
     int rotInt = (settings.rotationInterval ?: 0) as int
-    if (rotInt > 0) runIn(rotInt, "rotatePage")
+    if (rotInt > 0) {
+        unschedule("rotatePage")
+        runIn(rotInt, "rotatePage")
+    }
 }
 
 // ── Fade engine ────────────────────────────────────────────────────────────────
