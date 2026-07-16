@@ -2,9 +2,9 @@
   "packageName": "SenseCAP Indicator",
   "author": "jlslate",
   "minimumHEVersion": "2.3.4",
-  "version": "2.7.2",
-  "dateReleased": "2026-07-15",
-  "releaseNotes": "Fixed manual +/- thermostat taps being silently reverted by Home/Away auto-control within a minute (taps now persist into the page's Home band). Fixed the optional external temperature sensor not triggering a live display refresh when its reading changed.",
+  "version": "2.7.3",
+  "dateReleased": "2026-07-16",
+  "releaseNotes": "The physical GPIO38 button on the SenseCAP Indicator now advances to the next page (driver reacts to openHASP's raw button state and reuses the existing page-rotation logic). Hardened the auto-rotation timer so a manual page change can't stack a duplicate pending rotation alongside the reset one.",
   "documentationLink": "https://github.com/jlslate/SenseCAP-Indicator",
   "apps": [
     {
