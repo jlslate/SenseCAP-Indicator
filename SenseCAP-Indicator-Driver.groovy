@@ -685,12 +685,21 @@ def parse(String description) {
     // Physical green button (GPIO38, configured as a Push Button input in openHASP) --
     // openHASP only reports raw down/up state here, it doesn't advance the page itself,
     // so react on release and reuse the same rotatePage() the auto-rotation timer uses.
+    // If the screen is currently blanked, the first press just wakes it -- matching
+    // touch-to-wake behavior -- rather than also silently changing the page underneath.
     if (msg.topic.contains("/state/input38") && msg.topic.contains(cfgNode)) {
         try {
             def json = new groovy.json.JsonSlurper().parseText(msg.payload)
             if (json.event == "up") {
-                infoLog "[Dashboard] Physical button (GPIO38) pressed -- advancing page"
-                rotatePage()
+                if (state.screenIdle) {
+                    infoLog "[Dashboard] Physical button (GPIO38) pressed -- waking screen"
+                    state.screenIdle = false
+                    publishBacklight(true)
+                    startBacklightTimer()
+                } else {
+                    infoLog "[Dashboard] Physical button (GPIO38) pressed -- advancing page"
+                    rotatePage()
+                }
             }
         } catch (Exception e) { infoLog "[Dashboard] WARN -- Could not parse input38 event: ${e.message}" }
         return
