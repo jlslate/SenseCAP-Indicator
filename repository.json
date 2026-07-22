@@ -16,6 +16,14 @@
       "location": "https://raw.githubusercontent.com/jlslate/Composite-Device/main/packageManifest.json",
       "description": "Pools one or more real devices of the same type (water, lock, door, window, smoke, motion, garage door, temperature, humidity, or illuminance) into a single virtual device. By jlslate.",
       "tags": ["Multi Sensors"]
+    },
+    {
+      "id": "8f1bcd77-0466-4942-8810-ef38f6e7d528",
+      "name": "MySubaru",
+      "category": "Convenience",
+      "location": "https://raw.githubusercontent.com/jlslate/Hubitat-MySubaru/main/packageManifest.json",
+      "description": "Links your MySubaru STARLINK-connected Subaru to Hubitat: lock/unlock, horn/lights, remote start/stop, locate, EV charge-now, and vehicle status. By jlslate.",
+      "tags": ["Convenience", "Subaru", "jlslate"]
     }
   ]
 }
