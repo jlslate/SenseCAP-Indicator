@@ -24,6 +24,14 @@
       "location": "https://raw.githubusercontent.com/jlslate/Hubitat-MySubaru/main/packageManifest.json",
       "description": "Links your MySubaru STARLINK-connected Subaru to Hubitat: lock/unlock, horn/lights, remote start/stop, locate, EV charge-now, and vehicle status. By jlslate.",
       "tags": ["Convenience", "Subaru", "jlslate"]
+    },
+    {
+      "id": "96209F79-E604-4A6B-AD41-0D3AC96A0CF6",
+      "name": "Rehlko Generator Connect",
+      "category": "Convenience",
+      "location": "https://raw.githubusercontent.com/jlslate/Rehlko-Generator-Connect/main/packageManifest.json",
+      "description": "Links a Kohler/Rehlko Energy Management account to Hubitat for standby generator status and telemetry. By jlslate.",
+      "tags": ["Convenience", "Generator", "jlslate"]
     }
   ]
 }
