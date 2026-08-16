@@ -8,14 +8,22 @@
       "category": "Utility",
       "location": "https://raw.githubusercontent.com/jlslate/SenseCAP-Indicator/main/packageManifest.json",
       "description": "Drives up to 12 pages on a SenseCAP Indicator D1 touchscreen (openHASP/MQTT): motion, contact, water, smoke, lock, garage, light, thermostat, weather, and an alarm clock page. By jlslate.",
-      "tags": ["Dashboards", "MQTT", "Multi Sensors", "SenseCAP", "jlslate"]
+      "tags": [
+        "Dashboards",
+        "MQTT",
+        "Multi Sensors",
+        "SenseCAP",
+        "jlslate"
+      ]
     },
     {
       "name": "Composite Device",
       "category": "Utility",
       "location": "https://raw.githubusercontent.com/jlslate/Composite-Device/main/packageManifest.json",
       "description": "Pools one or more real devices of the same type (water, lock, door, window, smoke, motion, garage door, temperature, humidity, or illuminance) into a single virtual device. By jlslate.",
-      "tags": ["Multi Sensors"]
+      "tags": [
+        "Multi Sensors"
+      ]
     },
     {
       "id": "8f1bcd77-0466-4942-8810-ef38f6e7d528",
@@ -23,7 +31,11 @@
       "category": "Convenience",
       "location": "https://raw.githubusercontent.com/jlslate/Hubitat-MySubaru/main/packageManifest.json",
       "description": "Links your MySubaru STARLINK-connected Subaru to Hubitat: lock/unlock, horn/lights, remote start/stop, locate, EV charge-now, and vehicle status. By jlslate.",
-      "tags": ["Convenience", "Subaru", "jlslate"]
+      "tags": [
+        "Convenience",
+        "Subaru",
+        "jlslate"
+      ]
     },
     {
       "id": "96209F79-E604-4A6B-AD41-0D3AC96A0CF6",
@@ -31,7 +43,24 @@
       "category": "Convenience",
       "location": "https://raw.githubusercontent.com/jlslate/Rehlko-Generator-Connect/main/packageManifest.json",
       "description": "Links a Kohler/Rehlko Energy Management account to Hubitat for standby generator status and telemetry. By jlslate.",
-      "tags": ["Convenience", "Generator", "jlslate"]
+      "tags": [
+        "Convenience",
+        "Generator",
+        "jlslate"
+      ]
+    },
+    {
+      "id": "FAC18257-5A9B-4327-9CD8-75AB28E94CB1",
+      "name": "Danalock V3-BTZB Zigbee Lock",
+      "category": "Security",
+      "location": "https://raw.githubusercontent.com/jlslate/Hubitat-Danalock-Zigbee/main/packageManifest.json",
+      "description": "Driver for the Zigbee Danalock V3-BTZB/V3-BTZBE. Hubitat ships a Danalock driver for Z-Wave but none for Zigbee, so the Zigbee model falls back to Generic Zigbee Lock (no keypad), which decodes the Door Lock cluster's Operating Event Notification backwards and reports every manual turn as its opposite. By jlslate.",
+      "tags": [
+        "Locks",
+        "Zigbee",
+        "Safety & Security",
+        "jlslate"
+      ]
     }
   ]
 }
