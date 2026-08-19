@@ -61,6 +61,20 @@
         "Safety & Security",
         "jlslate"
       ]
+    },
+    {
+      "id": "fbbff389-cb61-4720-9fca-8c0796752482",
+      "name": "Navien NaviLink (Cloud)",
+      "category": "Integrations",
+      "location": "https://raw.githubusercontent.com/jlslate/hubitat-navien/main/packageManifest.json",
+      "description": "Links a Navien tankless water heater or combi boiler to Hubitat through the NaviLink cloud service: power, hot water setpoint, on-demand recirculation, inlet and outlet temperature, flow rate and gas usage. No local wiring or bridge required. By jlslate.",
+      "tags": [
+        "Water Heater",
+        "Cloud",
+        "MQTT",
+        "Energy Monitoring",
+        "jlslate"
+      ]
     }
   ]
 }
